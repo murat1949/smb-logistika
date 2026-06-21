@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Центр управления — Логистика</title>
+<style>
+  :root {
+    --navy:    #1e3a5f;
+    --navy2:   #16304f;
+    --blue:    #2563eb;
+    --blue2:   #1d4ed8;
+    --sky:     #e8f0fe;
+    --bg:      #f0f4f8;
+    --white:   #ffffff;
+    --green:   #059669;
+    --green2:  #d1fae5;
+    --orange:  #f59e0b;
+    --orange2: #fef3c7;
+    --red:     #dc2626;
+    --red2:    #fee2e2;
+    --text:    #1e293b;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+    --card:    #ffffff;
+    --shadow:  0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 72px;
+  }
+  .header {
+    background: var(--navy);
+    color: white;
+    padding: 16px 16px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .header-logo { display: flex; align-items: center; gap: 8px; }
+  .logo-icon { font-size: 22px; }
+  .logo-text { font-size: 15px; font-weight: 700; }
+  .logo-sub { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,0.12);
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    background: #4ade80; border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .header-date { margin-top: 8px; font-size: 12px; opacity: 0.65; }
+  .refresh-btn {
+    background: none; border: 1.5px solid rgba(255,255,255,0.3);
+    color: white; border-radius: 8px; padding: 4px 10px;
+    font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+  }
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--white); border-top: 1px solid var(--border);
+    display: flex; z-index: 100;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 8px 4px 6px; border: none; background: none;
+    cursor: pointer; font-size: 9px; color: var(--muted); gap: 2px;
+  }
+  .nav-btn .ico { font-size: 18px; }
+  .nav-btn.active { color: var(--blue); }
+  .nav-btn.active .nav-label { font-weight: 600; }
+  .screen { display: none; padding: 12px; }
+  .screen.active { display: block; }
+  .alert-bar {
+    padding: 10px 14px; border-radius: 10px; margin-bottom: 12px;
+    font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+  }
+  .alert-bar.ok { background: var(--green2); color: var(--green); }
+  .alert-bar.warning { background: var(--orange2); color: #92400e; }
+  .alert-bar.danger { background: var(--red2); color: var(--red); }
+  .gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .gauge-card {
+    background: var(--card); border-radius: 12px;
+    padding: 14px 12px; box-shadow: var(--shadow);
+  }
+  .gauge-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .gauge-label { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .gauge-icon { font-size: 16px; }
+  .gauge-value { font-size: 20px; font-weight: 800; color: var(--navy); line-height: 1; margin-bottom: 4px; }
+  .gauge-value.small { font-size: 15px; }
+  .gauge-plan { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+  .gauge-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+  .gauge-fill.blue { background: var(--blue); }
+  .gauge-fill.green { background: var(--green); }
+  .gauge-fill.red { background: var(--red); }
+  .card {
+    background: var(--card); border-radius: 12px;
+    padding: 14px; box-shadow: var(--shadow); margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+  }
+  .conversion-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .conv-step {
+    background: var(--sky); color: var(--blue);
+    font-size: 11px; font-weight: 600;
+    padding: 5px 10px; border-radius: 6px;
+  }
+  .conv-arrow { color: var(--muted); font-size: 12px; }
+  .conv-pct { margin-left: auto; font-size: 22px; font-weight: 800; color: var(--navy); }
+  .conv-label { font-size: 10px; color: var(--muted); text-align: right; }
+  .sredniy-chek {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--sky); border-radius: 10px; padding: 10px 14px; margin-top: 10px;
+  }
+  .sredniy-label { font-size: 12px; color: var(--blue); font-weight: 600; }
+  .sredniy-val { font-size: 16px; font-weight: 800; color: var(--navy); }
+  .debt-total { font-size: 24px; font-weight: 800; color: var(--red); margin-bottom: 4px; }
+  .debt-label { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+  .debt-list { display: flex; flex-direction: column; gap: 8px; }
+  .debt-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .debt-item:last-child { border-bottom: none; }
+  .debt-company { font-size: 13px; font-weight: 600; }
+  .debt-amount { font-size: 13px; font-weight: 700; color: var(--red); }
+  .no-data { text-align: center; color: var(--muted); font-size: 13px; padding: 16px 0; }
+  .mgr-list { display: flex; flex-direction: column; gap: 10px; }
+  .mgr-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .mgr-name { font-size: 13px; font-weight: 600; }
+  .mgr-revenue { font-size: 13px; font-weight: 700; color: var(--green); }
+  .mgr-bar { height: 4px; background: var(--border); border-radius: 2px; }
+  .mgr-fill { height: 100%; background: var(--blue); border-radius: 2px; }
+  .fin-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .fin-item { text-align: center; }
+  .fin-val { font-size: 15px; font-weight: 800; margin-bottom: 2px; }
+  .fin-val.green { color: var(--green); }
+  .fin-val.red { color: var(--red); }
+  .fin-val.blue { color: var(--blue); }
+  .fin-lbl { font-size: 10px; color: var(--muted); }
+  .ai-block {
+    background: linear-gradient(135deg, var(--navy), var(--blue2));
+    border-radius: 12px; padding: 14px; color: white; margin-bottom: 10px;
+  }
+  .ai-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .ai-title { font-size: 12px; font-weight: 700; opacity: 0.8; text-transform: uppercase; }
+  .ai-text { font-size: 13px; line-height: 1.6; opacity: 0.92; }
+  .tg-btn {
+    width: 100%; background: #229ED9; color: white;
+    border: none; border-radius: 12px; padding: 14px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .tg-btn:active { background: #1a8ab5; }
+  .form-title {
+    font-size: 16px; font-weight: 800; color: var(--navy);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .form-group { margin-bottom: 12px; }
+  .form-label {
+    display: block; font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; padding: 11px 12px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 14px; background: var(--white); color: var(--text);
+    outline: none; font-family: inherit;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--blue); }
+  .form-textarea { min-height: 72px; resize: vertical; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .submit-btn {
+    width: 100%; background: var(--blue); color: white;
+    border: none; border-radius: 12px; padding: 14px;
+    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px;
+  }
+  .submit-btn:active { background: var(--blue2); }
+  .toast {
+    position: fixed; top: 70px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--navy); color: white;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 600; z-index: 999;
+    opacity: 0; transition: opacity 0.3s;
+    white-space: nowrap; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toggle-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-name { font-size: 14px; font-weight: 600; }
+  .toggle-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; top:0; left:0; right:0; bottom:0;
+    background: var(--border); border-radius: 12px; cursor: pointer; transition: 0.2s;
+  }
+  .slider:before {
+    content:''; position:absolute; width:18px; height:18px;
+    left:3px; top:3px; background:white; border-radius:50%; transition:0.2s;
+  }
+  .toggle input:checked + .slider { background: var(--blue); }
+  .toggle input:checked + .slider:before { transform: translateX(20px); }
+  .section-head {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px;
+  }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="header-logo">
+      <span class="logo-icon">🚛</span>
+      <div>
+        <div class="logo-text" id="companyName">Центр управления</div>
+        <div class="logo-sub">Логистическая компания</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="refresh-btn" onclick="loadDashboard()">
+        <span id="refreshIcon">↻</span> Обновить
+      </button>
+      <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+    </div>
+  </div>
+  <div class="header-date" id="headerDate">Загрузка...</div>
+</div>
+
+<!-- ГЛАВНАЯ -->
+<div class="screen active" id="screen-home">
+  <div id="alertBar" class="alert-bar ok" style="margin-top:12px;">⏳ Загрузка...</div>
+
+  <div class="gauges">
+    <div class="gauge-card">
+      <div class="gauge-header"><div class="gauge-label">Выручка</div><div class="gauge-icon">💰</div></div>
+      <div class="gauge-value small" id="g-vyruchka">—</div>
+      <div class="gauge-plan" id="g-vyruchka-plan">план —</div>
+      <div class="gauge-bar"><div class="gauge-fill blue" id="g-vyruchka-bar" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-header"><div class="gauge-label">Заявки</div><div class="gauge-icon">📋</div></div>
+      <div class="gauge-value" id="g-zayavki">—</div>
+      <div class="gauge-plan" id="g-zayavki-plan">план —</div>
+      <div class="gauge-bar"><div class="gauge-fill green" id="g-zayavki-bar" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-header"><div class="gauge-label">Рейсы</div><div class="gauge-icon">🚛</div></div>
+      <div class="gauge-value" id="g-reysy">—</div>
+      <div class="gauge-plan" id="g-reysy-plan">план —</div>
+      <div class="gauge-bar"><div class="gauge-fill blue" id="g-reysy-bar" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-header"><div class="gauge-label">Дебиторка</div><div class="gauge-icon">⚠️</div></div>
+      <div class="gauge-value small" id="g-debitorka">—</div>
+      <div class="gauge-plan" id="g-debitorka-plan">порог —</div>
+      <div class="gauge-bar"><div class="gauge-fill red" id="g-debitorka-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Воронка</div>
+    <div class="conversion-row">
+      <div class="conv-step">Заявки<br><b id="c-zayavki">—</b></div>
+      <div class="conv-arrow">→</div>
+      <div class="conv-step">В работе<br><b id="c-vrabote">—</b></div>
+      <div class="conv-arrow">→</div>
+      <div class="conv-step">Рейсы<br><b id="c-reysy">—</b></div>
+      <div style="margin-left:auto;text-align:right;">
+        <div class="conv-pct" id="c-konversiya">—%</div>
+        <div class="conv-label">конверсия</div>
+      </div>
+    </div>
+    <div class="sredniy-chek">
+      <div class="sredniy-label">Средний чек рейса</div>
+      <div class="sredniy-val" id="c-sredniy">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Дебиторка</div>
+    <div class="debt-total" id="d-total">—</div>
+    <div class="debt-label">общий долг клиентов</div>
+    <div class="debt-list" id="d-list"><div class="no-data">Загрузка...</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Топ менеджеров</div>
+    <div class="mgr-list" id="mgr-list"><div class="no-data">Загрузка...</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Финансы месяца</div>
+    <div class="fin-grid">
+      <div class="fin-item"><div class="fin-val blue" id="f-vyruchka">—</div><div class="fin-lbl">Выручка</div></div>
+      <div class="fin-item"><div class="fin-val red" id="f-raskhody">—</div><div class="fin-lbl">Расходы</div></div>
+      <div class="fin-item"><div class="fin-val green" id="f-pribyl">—</div><div class="fin-lbl">Прибыль</div></div>
+    </div>
+  </div>
+
+  <div class="ai-block">
+    <div class="ai-header"><span>🤖</span><div class="ai-title">AI-анализ</div></div>
+    <div class="ai-text" id="ai-text"><span style="opacity:0.6;font-style:italic;">Анализирую данные...</span></div>
+  </div>
+
+  <button class="tg-btn" onclick="sendTelegramReport()">✈️ Отправить отчёт в Telegram</button>
+</div>
+
+<!-- ЗАЯВКИ -->
+<div class="screen" id="screen-zayavki">
+  <div style="padding-top:12px;">
+    <div class="form-title">📋 Новая заявка</div>
+    <div class="card">
+      <div class="form-group"><label class="form-label">Компания клиента *</label><input class="form-input" id="z-company" placeholder="ТОО КазГрузСервис"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Контакт</label><input class="form-input" id="z-contact" placeholder="Иван Петров"></div>
+        <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="z-phone" placeholder="+7 701..."></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Откуда *</label><input class="form-input" id="z-from" placeholder="Алматы"></div>
+        <div class="form-group"><label class="form-label">Куда *</label><input class="form-input" id="z-to" placeholder="Астана"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Груз / описание</label><input class="form-input" id="z-cargo" placeholder="Оборудование 5 тонн"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Сумма (₸)</label><input class="form-input" id="z-summa" type="number" placeholder="350000"></div>
+        <div class="form-group"><label class="form-label">Источник</label>
+          <select class="form-select" id="z-istochnik">
+            <option>Рекомендация</option><option>Звонок</option><option>Сайт</option>
+            <option>Instagram</option><option>2GIS</option><option>Повторный</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Менеджер</label><input class="form-input" id="z-manager" placeholder="Айдар"></div>
+        <div class="form-group"><label class="form-label">Статус</label>
+          <select class="form-select" id="z-status"><option>Новая</option><option>В работе</option><option>Согласование</option></select>
+        </div>
+      </div>
+      <button class="submit-btn" onclick="submitZayavka()">✓ Сохранить заявку</button>
+    </div>
+  </div>
+</div>
+
+<!-- ПЕРЕГОВОРЫ -->
+<div class="screen" id="screen-peregovory">
+  <div style="padding-top:12px;">
+    <div class="form-title">🤝 Фиксация контакта</div>
+    <div class="card">
+      <div class="form-group"><label class="form-label">Компания *</label><input class="form-input" id="p-company" placeholder="ТОО КазГрузСервис"></div>
+      <div class="form-group"><label class="form-label">Менеджер</label><input class="form-input" id="p-manager" placeholder="Айдар"></div>
+      <div class="form-group"><label class="form-label">Результат *</label>
+        <select class="form-select" id="p-result">
+          <option>Первый контакт</option><option>Отправлено КП</option>
+          <option>Ждём ответа</option><option>Согласовано</option><option>Отказ</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Следующий шаг</label><input class="form-input" id="p-nextstep" placeholder="Позвонить в пятницу"></div>
+      <div class="form-group"><label class="form-label">Дата следующего контакта</label><input class="form-input" id="p-nextdate" type="date"></div>
+      <div class="form-group"><label class="form-label">Комментарий</label><textarea class="form-textarea" id="p-comment" placeholder="Клиент думает..."></textarea></div>
+      <button class="submit-btn" onclick="submitPeregovory()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- РЕЙСЫ -->
+<div class="screen" id="screen-reysy">
+  <div style="padding-top:12px;">
+    <div class="form-title">🚛 Рейс выполнен</div>
+    <div class="card">
+      <div class="form-group"><label class="form-label">Компания клиента *</label><input class="form-input" id="r-company" placeholder="ТОО КазГрузСервис"></div>
+      <div class="form-group"><label class="form-label">Маршрут *</label><input class="form-input" id="r-marshrut" placeholder="Алматы — Астана"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Менеджер</label><input class="form-input" id="r-manager" placeholder="Айдар"></div>
+        <div class="form-group"><label class="form-label">Водитель</label><input class="form-input" id="r-driver" placeholder="Серик"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Сумма заказа (₸) *</label><input class="form-input" id="r-summa" type="number" placeholder="350000"></div>
+        <div class="form-group"><label class="form-label">Себестоимость (₸)</label><input class="form-input" id="r-sebestoimost" type="number" placeholder="120000"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Оплачено (₸)</label><input class="form-input" id="r-oplacheno" type="number" placeholder="350000"></div>
+        <div class="form-group"><label class="form-label">Форма оплаты</label>
+          <select class="form-select" id="r-forma">
+            <option>Безналичная</option><option>Наличная</option><option>Отсрочка</option><option>Частичная</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Статус</label>
+        <select class="form-select" id="r-status"><option>Выполнен</option><option>В пути</option><option>Задержка</option></select>
+      </div>
+      <button class="submit-btn" onclick="submitReys()">✓ Сохранить рейс</button>
+    </div>
+  </div>
+</div>
+
+<!-- ФИНАНСЫ -->
+<div class="screen" id="screen-finansy">
+  <div style="padding-top:12px;">
+    <div class="form-title">📊 Финансы дня</div>
+    <div class="card">
+      <div class="form-group"><label class="form-label">Дата</label><input class="form-input" id="fin-data" type="date"></div>
+      <div class="form-group"><label class="form-label">Выручка за день (₸)</label><input class="form-input" id="fin-vyruchka" type="number" placeholder="0"></div>
+      <div class="section-head">Расходы</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Топливо (₸)</label><input class="form-input" id="fin-toplivo" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Зарплата (₸)</label><input class="form-input" id="fin-zarplata" type="number" placeholder="0"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Прочие расходы (₸)</label><input class="form-input" id="fin-prochie" type="number" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Комментарий</label><textarea class="form-textarea" id="fin-comment" placeholder="Примечания..."></textarea></div>
+      <button class="submit-btn" onclick="submitFinansy()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- АЛЕРТЫ -->
+<div class="screen" id="screen-alerts">
+  <div style="padding-top:12px;">
+    <div class="form-title">🔔 Telegram уведомления</div>
+    <div class="card">
+      <div class="card-title">Настройки бота</div>
+      <div class="form-group"><label class="form-label">Bot Token</label><input class="form-input" id="s-token" placeholder="110201543:AAH..."></div>
+      <div class="form-group"><label class="form-label">Chat ID</label><input class="form-input" id="s-chatid" placeholder="-1001234567890"></div>
+      <button class="submit-btn" style="margin-top:0;" onclick="saveSettings()">Сохранить настройки</button>
+    </div>
+    <div class="card" style="margin-top:10px;">
+      <div class="card-title">Уведомления</div>
+      <div class="toggle-row">
+        <div><div class="toggle-name">Итог дня (21:00)</div><div class="toggle-desc">Ежедневный отчёт директору</div></div>
+        <label class="toggle"><input type="checkbox" id="t-itog" checked><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-name">Крупный рейс</div><div class="toggle-desc">Оплата выше порога</div></div>
+        <label class="toggle"><input type="checkbox" id="t-krupny" checked><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-name">Рост дебиторки</div><div class="toggle-desc">Долг превысил порог</div></div>
+        <label class="toggle"><input type="checkbox" id="t-debt" checked><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-name">Отказ клиента</div><div class="toggle-desc">Менеджер зафиксировал отказ</div></div>
+        <label class="toggle"><input type="checkbox" id="t-otkaz" checked><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="card" style="margin-top:10px;">
+      <div class="card-title">Плановые показатели</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Выручка план (₸)</label><input class="form-input" id="s-plan-vyr" type="number" placeholder="5000000"></div>
+        <div class="form-group"><label class="form-label">Рейсы план</label><input class="form-input" id="s-plan-reysy" type="number" placeholder="20"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Порог рейса (₸)</label><input class="form-input" id="s-porog-reys" type="number" placeholder="500000"></div>
+        <div class="form-group"><label class="form-label">Порог долга (₸)</label><input class="form-input" id="s-porog-debt" type="number" placeholder="1000000"></div>
+      </div>
+      <button class="submit-btn" onclick="saveSettings()">Сохранить всё</button>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showScreen('home',this)"><span class="ico">📊</span><span class="nav-label">Главная</span></button>
+  <button class="nav-btn" onclick="showScreen('zayavki',this)"><span class="ico">📋</span><span class="nav-label">Заявки</span></button>
+  <button class="nav-btn" onclick="showScreen('peregovory',this)"><span class="ico">🤝</span><span class="nav-label">Перегов.</span></button>
+  <button class="nav-btn" onclick="showScreen('reysy',this)"><span class="ico">🚛</span><span class="nav-label">Рейсы</span></button>
+  <button class="nav-btn" onclick="showScreen('finansy',this)"><span class="ico">💵</span><span class="nav-label">Финансы</span></button>
+  <button class="nav-btn" onclick="showScreen('alerts',this)"><span class="ico">🔔</span><span class="nav-label">Алерты</span></button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDgz4BiqU72Q4rTpIK5KHZcCEOYtz6eACI9sAu2rqM-ym4hwnMeKFXWqaiRZz-jEtc/exec'; // Вставить URL после деплоя
+
+const DEMO = {
+  companyName: 'Центр управления',
+  month: 'июнь 2026',
+  vyruchka: 3840000, planVyruchka: 5000000, planPercent: 77,
+  zayavki: 23, planZayavki: 30, vRabote: 8, vSoglasovanii: 5,
+  reysy: 15, planReysy: 20,
+  debitorka: 720000, porogDebitorki: 1000000,
+  konversiya: 65, sredniyChek: 256000,
+  pribyl: 1150000, raskhody: 2690000,
+  vyruchkaToday: 485000, reysyToday: 2, zayavkiToday: 3,
+  dolzhniki: [
+    { company: 'ТОО КазГрузСервис', debt: 350000 },
+    { company: 'АО АлтайТранс', debt: 220000 },
+    { company: 'ТОО МетроЛог', debt: 150000 },
+  ],
+  topManagers: [
+    { name: 'Айдар', revenue: 1820000 },
+    { name: 'Данияр', revenue: 1340000 },
+    { name: 'Серик', revenue: 680000 },
+  ],
+  alertLevel: 'ok'
+};
+
+function showScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+async function loadDashboard() {
+  document.getElementById('refreshIcon').innerHTML = '<span class="spinner"></span>';
+  let data = null;
+  if (SCRIPT_URL) {
+    try {
+      const r = await fetch(SCRIPT_URL + '?action=dashboard');
+      data = await r.json();
+    } catch(e) {}
+  }
+  if (!data || data.error) { data = DEMO; data._demo = true; }
+  renderDashboard(data);
+  document.getElementById('refreshIcon').textContent = '↻';
+}
+
+function fmt(n) {
+  if (n === undefined || n === null) return '—';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + ' млн ₸';
+  if (n >= 1000) return Math.round(n/1000) + ' тыс ₸';
+  return n.toLocaleString('ru') + ' ₸';
+}
+
+function renderDashboard(d) {
+  const now = new Date();
+  document.getElementById('headerDate').textContent =
+    now.toLocaleDateString('ru', {weekday:'long', day:'numeric', month:'long'}) +
+    (d._demo ? ' · ДЕМО-РЕЖИМ' : '');
+  document.getElementById('companyName').textContent = d.companyName || 'Центр управления';
+
+  const ab = document.getElementById('alertBar');
+  if (d.alertLevel === 'danger') {
+    ab.className = 'alert-bar danger';
+    ab.textContent = '🔴 Дебиторка превышает порог — срочно принять меры';
+  } else if (d.alertLevel === 'warning') {
+    ab.className = 'alert-bar warning';
+    ab.textContent = '⚠️ План менее 35% — нужно ускориться';
+  } else {
+    ab.className = 'alert-bar ok';
+    ab.textContent = `✅ ${d.month} — план выполнен на ${d.planPercent}%`;
+  }
+
+  const vp = Math.min(Math.round(d.vyruchka/d.planVyruchka*100), 100);
+  document.getElementById('g-vyruchka').textContent = fmt(d.vyruchka);
+  document.getElementById('g-vyruchka-plan').textContent = `план ${Math.round(d.planVyruchka/1000000*10)/10} млн · ${vp}%`;
+  document.getElementById('g-vyruchka-bar').style.width = vp + '%';
+
+  const zp = Math.min(Math.round(d.zayavki/d.planZayavki*100), 100);
+  document.getElementById('g-zayavki').textContent = d.zayavki;
+  document.getElementById('g-zayavki-plan').textContent = `план ${d.planZayavki} · ${zp}%`;
+  document.getElementById('g-zayavki-bar').style.width = zp + '%';
+
+  const rp = Math.min(Math.round(d.reysy/d.planReysy*100), 100);
+  document.getElementById('g-reysy').textContent = d.reysy;
+  document.getElementById('g-reysy-plan').textContent = `план ${d.planReysy} · ${rp}%`;
+  document.getElementById('g-reysy-bar').style.width = rp + '%';
+
+  const dp = Math.min(Math.round(d.debitorka/d.porogDebitorki*100), 100);
+  document.getElementById('g-debitorka').textContent = fmt(d.debitorka);
+  document.getElementById('g-debitorka-plan').textContent = `порог ${Math.round(d.porogDebitorki/1000)} тыс`;
+  document.getElementById('g-debitorka-bar').style.width = dp + '%';
+
+  document.getElementById('c-zayavki').textContent = d.zayavki;
+  document.getElementById('c-vrabote').textContent = d.vRabote;
+  document.getElementById('c-reysy').textContent = d.reysy;
+  document.getElementById('c-konversiya').textContent = d.konversiya + '%';
+  document.getElementById('c-sredniy').textContent = fmt(d.sredniyChek);
+
+  document.getElementById('d-total').textContent = fmt(d.debitorka);
+  const dList = document.getElementById('d-list');
+  dList.innerHTML = d.dolzhniki && d.dolzhniki.length
+    ? d.dolzhniki.map(i => `<div class="debt-item"><div class="debt-company">${i.company}</div><div class="debt-amount">${fmt(i.debt)}</div></div>`).join('')
+    : '<div class="no-data">Долгов нет 🎉</div>';
+
+  const maxR = d.topManagers && d.topManagers.length ? d.topManagers[0].revenue : 1;
+  document.getElementById('mgr-list').innerHTML = d.topManagers && d.topManagers.length
+    ? d.topManagers.map(m => `
+      <div>
+        <div class="mgr-row"><div class="mgr-name">${m.name}</div><div class="mgr-revenue">${fmt(m.revenue)}</div></div>
+        <div class="mgr-bar"><div class="mgr-fill" style="width:${Math.round(m.revenue/maxR*100)}%"></div></div>
+      </div>`).join('')
+    : '<div class="no-data">Нет данных по рейсам</div>';
+
+  document.getElementById('f-vyruchka').textContent = fmt(d.vyruchka);
+  document.getElementById('f-raskhody').textContent = fmt(d.raskhody);
+  document.getElementById('f-pribyl').textContent = fmt(d.pribyl);
+
+  // AI анализ
+  let insights = [];
+  if (d.planPercent >= 80) insights.push(`✅ Выполнение ${d.planPercent}% — отличный темп. Месяц закроем выше плана.`);
+  else if (d.planPercent >= 50) insights.push(`📈 План выполнен на ${d.planPercent}%. До цели осталось ${fmt(d.planVyruchka - d.vyruchka)}.`);
+  else insights.push(`⚠️ План ${d.planPercent}% — нужно ускориться. Проверьте заявки в работе.`);
+  if (d.konversiya >= 70) insights.push(`Конверсия ${d.konversiya}% — воронка работает эффективно.`);
+  else if (d.konversiya < 40) insights.push(`Конверсия ${d.konversiya}% — низкая. Проверьте качество заявок и работу на этапе согласования.`);
+  if (d.debitorka > d.porogDebitorki * 0.8) insights.push(`🔴 Дебиторка ${fmt(d.debitorka)} — близко к порогу. Рекомендую связаться с должниками.`);
+  if (d.vRabote > 0) insights.push(`В работе ${d.vRabote} заявок — ожидаем ещё ~${Math.round(d.vRabote * d.konversiya / 100)} рейсов.`);
+  document.getElementById('ai-text').innerHTML = insights.join('<br><br>');
+}
+
+async function sendTelegramReport() {
+  if (!SCRIPT_URL) { showToast('⚙️ Подключите Apps Script'); return; }
+  try {
+    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({action:'sendTelegram'}) });
+    const res = await r.json();
+    showToast(res.success ? '✈️ Отчёт отправлен!' : '❌ ' + res.message);
+  } catch(e) { showToast('❌ Ошибка отправки'); }
+}
+
+async function postData(data, msg) {
+  if (!SCRIPT_URL) { showToast('✓ Сохранено (демо)'); return; }
+  try {
+    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(data) });
+    const res = await r.json();
+    showToast(res.success ? msg : '❌ Ошибка');
+    if (res.success) loadDashboard();
+  } catch(e) { showToast('❌ Нет соединения'); }
+}
+
+async function submitZayavka() {
+  const c = document.getElementById('z-company').value.trim();
+  if (!c) { showToast('⚠️ Укажите компанию'); return; }
+  await postData({
+    action:'addZayavka', company:c,
+    contact: document.getElementById('z-contact').value,
+    phone: document.getElementById('z-phone').value,
+    from: document.getElementById('z-from').value,
+    to: document.getElementById('z-to').value,
+    cargo: document.getElementById('z-cargo').value,
+    summa: document.getElementById('z-summa').value,
+    istochnik: document.getElementById('z-istochnik').value,
+    manager: document.getElementById('z-manager').value,
+    status: document.getElementById('z-status').value,
+    data: new Date().toISOString()
+  }, 'Заявка добавлена ✓');
+  ['z-company','z-contact','z-phone','z-from','z-to','z-cargo','z-summa','z-manager'].forEach(id => document.getElementById(id).value='');
+}
+
+async function submitPeregovory() {
+  const c = document.getElementById('p-company').value.trim();
+  if (!c) { showToast('⚠️ Укажите компанию'); return; }
+  await postData({
+    action:'addPeregovory', company:c,
+    manager: document.getElementById('p-manager').value,
+    result: document.getElementById('p-result').value,
+    nextStep: document.getElementById('p-nextstep').value,
+    nextDate: document.getElementById('p-nextdate').value,
+    comment: document.getElementById('p-comment').value,
+    data: new Date().toISOString()
+  }, 'Зафиксировано ✓');
+  ['p-company','p-manager','p-nextstep','p-nextdate','p-comment'].forEach(id => document.getElementById(id).value='');
+}
+
+async function submitReys() {
+  const c = document.getElementById('r-company').value.trim();
+  const s = document.getElementById('r-summa').value;
+  if (!c || !s) { showToast('⚠️ Заполните обязательные поля'); return; }
+  await postData({
+    action:'addReys', company:c,
+    marshrut: document.getElementById('r-marshrut').value,
+    manager: document.getElementById('r-manager').value,
+    driver: document.getElementById('r-driver').value,
+    summa:s,
+    sebestoimost: document.getElementById('r-sebestoimost').value,
+    oplacheno: document.getElementById('r-oplacheno').value,
+    forma: document.getElementById('r-forma').value,
+    status: document.getElementById('r-status').value,
+    data: new Date().toISOString()
+  }, 'Рейс добавлен ✓');
+  ['r-company','r-marshrut','r-manager','r-driver','r-summa','r-sebestoimost','r-oplacheno'].forEach(id => document.getElementById(id).value='');
+}
+
+async function submitFinansy() {
+  await postData({
+    action:'addFinansy',
+    data: document.getElementById('fin-data').value,
+    vyruchka: document.getElementById('fin-vyruchka').value,
+    toplivo: document.getElementById('fin-toplivo').value,
+    zarplata: document.getElementById('fin-zarplata').value,
+    prochie: document.getElementById('fin-prochie').value,
+    comment: document.getElementById('fin-comment').value
+  }, 'Финансы сохранены ✓');
+}
+
+async function saveSettings() {
+  const settings = {
+    'Telegram Bot Token': document.getElementById('s-token').value,
+    'Telegram Chat ID': document.getElementById('s-chatid').value,
+    'Уведомление итог дня': document.getElementById('t-itog').checked ? 'ДА' : 'НЕТ',
+    'Уведомление крупный рейс': document.getElementById('t-krupny').checked ? 'ДА' : 'НЕТ',
+    'Уведомление дебиторка': document.getElementById('t-debt').checked ? 'ДА' : 'НЕТ',
+    'Уведомление отказ': document.getElementById('t-otkaz').checked ? 'ДА' : 'НЕТ',
+  };
+  const pv = document.getElementById('s-plan-vyr').value;
+  const pr = document.getElementById('s-plan-reysy').value;
+  const pp = document.getElementById('s-porog-reys').value;
+  const pd = document.getElementById('s-porog-debt').value;
+  if (pv) settings['Выручка план'] = pv;
+  if (pr) settings['Рейсы план'] = pr;
+  if (pp) settings['Порог крупного рейса'] = pp;
+  if (pd) settings['Порог дебиторки'] = pd;
+  if (!SCRIPT_URL) { showToast('✓ Настройки (демо)'); return; }
+  try {
+    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({action:'saveSettings', settings}) });
+    const res = await r.json();
+    showToast(res.success ? '✓ Сохранено' : '❌ Ошибка');
+  } catch(e) { showToast('❌ Нет соединения'); }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+document.getElementById('fin-data').value = new Date().toISOString().split('T')[0];
+loadDashboard();
+</script>
+</body>
+</html>
