@@ -99,22 +99,41 @@
   .alert-bar.ok { background: var(--green2); color: var(--green); }
   .alert-bar.warning { background: var(--orange2); color: #92400e; }
   .alert-bar.danger { background: var(--red2); color: var(--red); }
-  .gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-  .gauge-card {
-    background: var(--card); border-radius: 12px;
-    padding: 14px 12px; box-shadow: var(--shadow);
+  /* СПИДОМЕТРЫ */
+  .speedos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .speedo-card {
+    background: var(--card); border-radius: 16px;
+    padding: 12px 8px 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    display: flex; flex-direction: column; align-items: center;
+    position: relative; overflow: hidden;
   }
-  .gauge-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-  .gauge-label { font-size: 11px; color: var(--muted); font-weight: 500; }
-  .gauge-icon { font-size: 16px; }
-  .gauge-value { font-size: 20px; font-weight: 800; color: var(--navy); line-height: 1; margin-bottom: 4px; }
-  .gauge-value.small { font-size: 15px; }
-  .gauge-plan { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
-  .gauge-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-  .gauge-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
-  .gauge-fill.blue { background: var(--blue); }
-  .gauge-fill.green { background: var(--green); }
-  .gauge-fill.red { background: var(--red); }
+  .speedo-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--sc, #2563eb); border-radius: 16px 16px 0 0;
+  }
+  .speedo-label {
+    font-size: 10px; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .speedo-svg { width: 110px; height: 62px; }
+  .speedo-value { font-size: 15px; font-weight: 900; color: var(--navy); margin-top: 1px; line-height: 1; text-align:center; }
+  .speedo-value.small { font-size: 12px; }
+  .speedo-pct { font-size: 12px; font-weight: 800; margin-top: 1px; text-align:center; }
+  .speedo-sub { font-size: 9px; color: var(--muted); margin-top: 2px; text-align: center; }
+
+  /* TODAY STRIP */
+  .today-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .today-item {
+    background: linear-gradient(135deg, #1e3a5f, #2563eb);
+    border-radius: 12px; padding: 10px 6px; text-align: center; color: white;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+  }
+  .today-val { font-size: 17px; font-weight: 900; }
+  .today-lbl { font-size: 9px; opacity: 0.75; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  /* Скрываем старые gauge */
+  .gauges { display: none; }
   .card {
     background: var(--card); border-radius: 12px;
     padding: 14px; box-shadow: var(--shadow); margin-bottom: 10px;
@@ -268,30 +287,67 @@
 <div class="screen active" id="screen-home">
   <div id="alertBar" class="alert-bar ok" style="margin-top:12px;">⏳ Загрузка...</div>
 
-  <div class="gauges">
-    <div class="gauge-card">
-      <div class="gauge-header"><div class="gauge-label">Выручка</div><div class="gauge-icon">💰</div></div>
-      <div class="gauge-value small" id="g-vyruchka">—</div>
-      <div class="gauge-plan" id="g-vyruchka-plan">план —</div>
-      <div class="gauge-bar"><div class="gauge-fill blue" id="g-vyruchka-bar" style="width:0%"></div></div>
+  <!-- СЕГОДНЯ -->
+  <div class="today-strip">
+    <div class="today-item">
+      <div class="today-val" id="today-vyr">—</div>
+      <div class="today-lbl">Выручка сегодня</div>
     </div>
-    <div class="gauge-card">
-      <div class="gauge-header"><div class="gauge-label">Заявки</div><div class="gauge-icon">📋</div></div>
-      <div class="gauge-value" id="g-zayavki">—</div>
-      <div class="gauge-plan" id="g-zayavki-plan">план —</div>
-      <div class="gauge-bar"><div class="gauge-fill green" id="g-zayavki-bar" style="width:0%"></div></div>
+    <div class="today-item">
+      <div class="today-val" id="today-reysy">—</div>
+      <div class="today-lbl">Рейсов сегодня</div>
     </div>
-    <div class="gauge-card">
-      <div class="gauge-header"><div class="gauge-label">Рейсы</div><div class="gauge-icon">🚛</div></div>
-      <div class="gauge-value" id="g-reysy">—</div>
-      <div class="gauge-plan" id="g-reysy-plan">план —</div>
-      <div class="gauge-bar"><div class="gauge-fill blue" id="g-reysy-bar" style="width:0%"></div></div>
+    <div class="today-item">
+      <div class="today-val" id="today-zayavki">—</div>
+      <div class="today-lbl">Заявок сегодня</div>
     </div>
-    <div class="gauge-card">
-      <div class="gauge-header"><div class="gauge-label">Дебиторка</div><div class="gauge-icon">⚠️</div></div>
-      <div class="gauge-value small" id="g-debitorka">—</div>
-      <div class="gauge-plan" id="g-debitorka-plan">порог —</div>
-      <div class="gauge-bar"><div class="gauge-fill red" id="g-debitorka-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- СПИДОМЕТРЫ -->
+  <div class="speedos">
+    <div class="speedo-card" style="--sc:#2563eb">
+      <div class="speedo-label">💰 Выручка</div>
+      <svg class="speedo-svg" viewBox="0 0 110 62" id="sv-vyruchka">
+        <path d="M10,55 A45,45 0 0,1 100,55" fill="none" stroke="#e2e8f0" stroke-width="9" stroke-linecap="round"/>
+        <path d="M10,55 A45,45 0 0,1 100,55" fill="none" stroke="#2563eb" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="141.4" stroke-dashoffset="141.4" id="sv-vyruchka-arc" style="transition:stroke-dashoffset 1s ease"/>
+        <text x="55" y="50" text-anchor="middle" font-size="16" font-weight="900" fill="#1e3a5f" id="sv-vyruchka-pct">0%</text>
+      </svg>
+      <div class="speedo-value small" id="g-vyruchka">—</div>
+      <div class="speedo-sub" id="g-vyruchka-plan">план —</div>
+    </div>
+    <div class="speedo-card" style="--sc:#059669">
+      <div class="speedo-label">📋 Заявки</div>
+      <svg class="speedo-svg" viewBox="0 0 110 62" id="sv-zayavki">
+        <path d="M10,55 A45,45 0 0,1 100,55" fill="none" stroke="#e2e8f0" stroke-width="9" stroke-linecap="round"/>
+        <path d="M10,55 A45,45 0 0,1 100,55" fill="none" stroke="#059669" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="141.4" stroke-dashoffset="141.4" id="sv-zayavki-arc" style="transition:stroke-dashoffset 1s ease"/>
+        <text x="55" y="50" text-anchor="middle" font-size="16" font-weight="900" fill="#1e3a5f" id="sv-zayavki-pct">0%</text>
+      </svg>
+      <div class="speedo-value" id="g-zayavki">—</div>
+      <div class="speedo-sub" id="g-zayavki-plan">план —</div>
+    </div>
+    <div class="speedo-card" style="--sc:#f59e0b">
+      <div class="speedo-label">🚛 Рейсы</div>
+      <svg class="speedo-svg" viewBox="0 0 110 62" id="sv-reysy">
+        <path d="M10,55 A45,45 0 0,1 100,55" fill="none" stroke="#e2e8f0" stroke-width="9" stroke-linecap="round"/>
+        <path d="M10,55 A45,45 0 0,1 100,55" fill="none" stroke="#f59e0b" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="141.4" stroke-dashoffset="141.4" id="sv-reysy-arc" style="transition:stroke-dashoffset 1s ease"/>
+        <text x="55" y="50" text-anchor="middle" font-size="16" font-weight="900" fill="#1e3a5f" id="sv-reysy-pct">0%</text>
+      </svg>
+      <div class="speedo-value" id="g-reysy">—</div>
+      <div class="speedo-sub" id="g-reysy-plan">план —</div>
+    </div>
+    <div class="speedo-card" style="--sc:#dc2626">
+      <div class="speedo-label">⚠️ Дебиторка</div>
+      <svg class="speedo-svg" viewBox="0 0 110 62" id="sv-debitorka">
+        <path d="M10,55 A45,45 0 0,1 100,55" fill="none" stroke="#e2e8f0" stroke-width="9" stroke-linecap="round"/>
+        <path d="M10,55 A45,45 0 0,1 100,55" fill="none" stroke="#dc2626" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="141.4" stroke-dashoffset="141.4" id="sv-debitorka-arc" style="transition:stroke-dashoffset 1s ease"/>
+        <text x="55" y="50" text-anchor="middle" font-size="16" font-weight="900" fill="#1e3a5f" id="sv-debitorka-pct">0%</text>
+      </svg>
+      <div class="speedo-value small" id="g-debitorka">—</div>
+      <div class="speedo-sub" id="g-debitorka-plan">порог —</div>
     </div>
   </div>
 
@@ -554,25 +610,45 @@ function renderDashboard(d) {
     ab.textContent = `✅ ${d.month} — план выполнен на ${d.planPercent}%`;
   }
 
+  // Сегодня
+  document.getElementById('today-vyr').textContent = fmt(d.vyruchkaToday || 0);
+  document.getElementById('today-reysy').textContent = d.reysyToday || 0;
+  document.getElementById('today-zayavki').textContent = d.zayavkiToday || 0;
+
+  // Спидометры
+  function setArc(arcId, pctId, pct) {
+    const arc = document.getElementById(arcId);
+    const pctEl = document.getElementById(pctId);
+    const offset = 141.4 * (1 - Math.min(pct, 100) / 100);
+    setTimeout(() => { if(arc) arc.style.strokeDashoffset = offset; }, 100);
+    if(pctEl) pctEl.textContent = Math.min(pct,100) + '%';
+    // Цвет дуги по проценту
+    if(arc) {
+      if(pct >= 80) arc.style.stroke = '#059669';
+      else if(pct >= 50) arc.style.stroke = '#f59e0b';
+      else arc.style.stroke = arc.getAttribute('stroke') || '#2563eb';
+    }
+  }
+
   const vp = Math.min(Math.round(d.vyruchka/d.planVyruchka*100), 100);
   document.getElementById('g-vyruchka').textContent = fmt(d.vyruchka);
-  document.getElementById('g-vyruchka-plan').textContent = `план ${Math.round(d.planVyruchka/1000000*10)/10} млн · ${vp}%`;
-  document.getElementById('g-vyruchka-bar').style.width = vp + '%';
+  document.getElementById('g-vyruchka-plan').textContent = `план ${Math.round(d.planVyruchka/1000000*10)/10} млн`;
+  setArc('sv-vyruchka-arc', 'sv-vyruchka-pct', vp);
 
   const zp = Math.min(Math.round(d.zayavki/d.planZayavki*100), 100);
-  document.getElementById('g-zayavki').textContent = d.zayavki;
-  document.getElementById('g-zayavki-plan').textContent = `план ${d.planZayavki} · ${zp}%`;
-  document.getElementById('g-zayavki-bar').style.width = zp + '%';
+  document.getElementById('g-zayavki').textContent = d.zayavki + ' / ' + d.planZayavki;
+  document.getElementById('g-zayavki-plan').textContent = `в работе: ${d.vRabote}`;
+  setArc('sv-zayavki-arc', 'sv-zayavki-pct', zp);
 
   const rp = Math.min(Math.round(d.reysy/d.planReysy*100), 100);
-  document.getElementById('g-reysy').textContent = d.reysy;
-  document.getElementById('g-reysy-plan').textContent = `план ${d.planReysy} · ${rp}%`;
-  document.getElementById('g-reysy-bar').style.width = rp + '%';
+  document.getElementById('g-reysy').textContent = d.reysy + ' / ' + d.planReysy;
+  document.getElementById('g-reysy-plan').textContent = `план ${d.planReysy} рейсов`;
+  setArc('sv-reysy-arc', 'sv-reysy-pct', rp);
 
   const dp = Math.min(Math.round(d.debitorka/d.porogDebitorki*100), 100);
   document.getElementById('g-debitorka').textContent = fmt(d.debitorka);
-  document.getElementById('g-debitorka-plan').textContent = `порог ${Math.round(d.porogDebitorki/1000)} тыс`;
-  document.getElementById('g-debitorka-bar').style.width = dp + '%';
+  document.getElementById('g-debitorka-plan').textContent = `порог ${fmt(d.porogDebitorki)}`;
+  setArc('sv-debitorka-arc', 'sv-debitorka-pct', dp);
 
   document.getElementById('c-zayavki').textContent = d.zayavki;
   document.getElementById('c-vrabote').textContent = d.vRabote;
@@ -614,7 +690,7 @@ function renderDashboard(d) {
 async function sendTelegramReport() {
   if (!SCRIPT_URL) { showToast('⚙️ Подключите Apps Script'); return; }
   try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'sendTelegram'}) });
+    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({action:'sendTelegram'}) });
     const res = await r.json();
     showToast(res.success ? '✈️ Отчёт отправлен!' : '❌ ' + res.message);
   } catch(e) { showToast('❌ Ошибка отправки'); }
@@ -623,7 +699,7 @@ async function sendTelegramReport() {
 async function postData(data, msg) {
   if (!SCRIPT_URL) { showToast('✓ Сохранено (демо)'); return; }
   try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(data) });
     const res = await r.json();
     showToast(res.success ? msg : '❌ Ошибка');
     if (res.success) loadDashboard();
@@ -710,7 +786,7 @@ async function saveSettings() {
   if (pd) settings['Порог дебиторки'] = pd;
   if (!SCRIPT_URL) { showToast('✓ Настройки (демо)'); return; }
   try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'saveSettings', settings}) });
+    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({action:'saveSettings', settings}) });
     const res = await r.json();
     showToast(res.success ? '✓ Сохранено' : '❌ Ошибка');
   } catch(e) { showToast('❌ Нет соединения'); }
