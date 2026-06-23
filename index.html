@@ -614,7 +614,7 @@ function renderDashboard(d) {
 async function sendTelegramReport() {
   if (!SCRIPT_URL) { showToast('⚙️ Подключите Apps Script'); return; }
   try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({action:'sendTelegram'}) });
+    const r = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'sendTelegram'}) });
     const res = await r.json();
     showToast(res.success ? '✈️ Отчёт отправлен!' : '❌ ' + res.message);
   } catch(e) { showToast('❌ Ошибка отправки'); }
@@ -623,7 +623,7 @@ async function sendTelegramReport() {
 async function postData(data, msg) {
   if (!SCRIPT_URL) { showToast('✓ Сохранено (демо)'); return; }
   try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(data) });
+    const r = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
     const res = await r.json();
     showToast(res.success ? msg : '❌ Ошибка');
     if (res.success) loadDashboard();
@@ -710,7 +710,7 @@ async function saveSettings() {
   if (pd) settings['Порог дебиторки'] = pd;
   if (!SCRIPT_URL) { showToast('✓ Настройки (демо)'); return; }
   try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({action:'saveSettings', settings}) });
+    const r = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'saveSettings', settings}) });
     const res = await r.json();
     showToast(res.success ? '✓ Сохранено' : '❌ Ошибка');
   } catch(e) { showToast('❌ Нет соединения'); }
