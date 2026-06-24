@@ -75,6 +75,21 @@
     color: white; border-radius: 8px; padding: 4px 10px;
     font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;
   }
+  .home-top-btn {
+    width: 30px; height: 30px;
+    border: 1.5px solid rgba(255,255,255,0.32);
+    background: rgba(255,255,255,0.10);
+    color: white;
+    border-radius: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .home-top-btn:active { transform: scale(.94); background: rgba(255,255,255,0.20); }
+
   .nav {
     position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
     width: 100%; max-width: 420px;
@@ -564,6 +579,7 @@
       </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="home-top-btn" onclick="returnToSplash()" title="Вернуться на заставку" aria-label="Вернуться на заставку">⌂</button>
       <button class="refresh-btn" onclick="loadDashboard()">
         <span id="refreshIcon">↻</span> Обновить
       </button>
@@ -862,6 +878,15 @@ function enterSystem() {
   }, 850);
 }
 
+function returnToSplash() {
+  const splash = document.getElementById('startSplash');
+  const loading = document.getElementById('splashLoading');
+  if (loading) loading.classList.remove('show');
+  if (splash) splash.classList.remove('hidden');
+  const homeBtn = document.querySelector('.nav-btn[onclick*=\"home\"]');
+  if (homeBtn) showScreen('home', homeBtn);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDgz4BiqU72Q4rTpIK5KHZcCEOYtz6eACI9sAu2rqM-ym4hwnMeKFXWqaiRZz-jEtc/exec'; // Вставить URL после деплоя
 
