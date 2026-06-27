@@ -888,7 +888,49 @@ function returnToSplash() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDgz4BiqU72Q4rTpIK5KHZcCEOYtz6eACI9sAu2rqM-ym4hwnMeKFXWqaiRZz-jEtc/exec'; // Вставить URL после деплоя
+// ===== SUPABASE CONFIG =====
+const SUPABASE_URL = 'https://ilfxyvsqintvjbifqxvr.supabase.co';
+const SUPABASE_KEY = 'ВСТАВИТЬ_PUBLISHABLE_KEY';
+
+async function sbFetch(table, params = '') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    }
+  });
+  return r.json();
+}
+
+async function sbInsert(table, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(body)
+  });
+  return r.ok;
+}
+
+async function sbUpdate(table, id, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(body)
+  });
+  return r.ok;
+}
+
 
 const DEMO = {
   companyName: 'Центр управления',
@@ -923,13 +965,96 @@ function showScreen(name, btn) {
 async function loadDashboard() {
   document.getElementById('refreshIcon').innerHTML = '<span class="spinner"></span>';
   let data = null;
-  if (SCRIPT_URL) {
-    try {
-      const r = await fetch(SCRIPT_URL + '?action=dashboard');
-      data = await r.json();
-    } catch(e) {}
+  try {
+    // Загружаем настройки
+    const settings = await sbFetch('logistika_settings', '?select=param_key,param_value');
+    const cfg = {};
+    if (Array.isArray(settings)) settings.forEach(r => { cfg[r.param_key] = r.param_value; });
+
+    // Текущий месяц
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const monthStart = `${y}-${m}-01`;
+    const monthEnd = `${y}-${m}-31`;
+
+    // Рейсы за месяц
+    const trips = await sbFetch('logistika_trips', `?trip_date=gte.${monthStart}&trip_date=lte.${monthEnd}&select=order_amount,cost_price,profit,paid_amount,debt_balance,status,manager,client_company`);
+
+    // Заявки за месяц
+    const leads = await sbFetch('logistika_leads', `?lead_date=gte.${monthStart}&lead_date=lte.${monthEnd}&select=status,lead_amount,manager`);
+
+    // Финансы за месяц
+    const finance = await sbFetch('logistika_finance', `?finance_date=gte.${monthStart}&finance_date=lte.${monthEnd}&select=revenue,fuel_expenses,salary_expenses,other_expenses,total_expenses,profit`);
+
+    // Сегодня
+    const today = now.toISOString().split('T')[0];
+    const tripsToday = await sbFetch('logistika_trips', `?trip_date=eq.${today}&select=order_amount`);
+    const leadsToday = await sbFetch('logistika_leads', `?lead_date=eq.${today}&select=id`);
+
+    // Считаем показатели
+    const planVyruchka = parseFloat(cfg.revenue_plan) || 5000000;
+    const planReysy = parseFloat(cfg.trips_plan) || 20;
+    const planZayavki = parseFloat(cfg.leads_plan) || 30;
+    const porogDebitorki = parseFloat(cfg.debt_threshold) || 1000000;
+
+    const vyruchka = Array.isArray(trips) ? trips.reduce((s, t) => s + parseFloat(t.order_amount || 0), 0) : 0;
+    const raskhody = Array.isArray(trips) ? trips.reduce((s, t) => s + parseFloat(t.cost_price || 0), 0) : 0;
+    const pribyl = Array.isArray(trips) ? trips.reduce((s, t) => s + parseFloat(t.profit || 0), 0) : 0;
+    const debitorka = Array.isArray(trips) ? trips.reduce((s, t) => s + parseFloat(t.debt_balance || 0), 0) : 0;
+    const reysy = Array.isArray(trips) ? trips.length : 0;
+    const zayavki = Array.isArray(leads) ? leads.length : 0;
+    const vRabote = Array.isArray(leads) ? leads.filter(l => l.status === 'В работе').length : 0;
+    const vyruchkaToday = Array.isArray(tripsToday) ? tripsToday.reduce((s, t) => s + parseFloat(t.order_amount || 0), 0) : 0;
+    const reysyToday = Array.isArray(tripsToday) ? tripsToday.length : 0;
+    const zayavkiToday = Array.isArray(leadsToday) ? leadsToday.length : 0;
+    const konversiya = zayavki > 0 ? Math.round(reysy / zayavki * 100) : 0;
+    const sredniyChek = reysy > 0 ? Math.round(vyruchka / reysy) : 0;
+    const planPercent = planVyruchka > 0 ? Math.round(vyruchka / planVyruchka * 100) : 0;
+
+    // Должники (рейсы с долгом)
+    const dolzhniki = Array.isArray(trips)
+      ? trips.filter(t => parseFloat(t.debt_balance || 0) > 0)
+          .sort((a, b) => parseFloat(b.debt_balance) - parseFloat(a.debt_balance))
+          .slice(0, 5)
+          .map(t => ({ company: t.client_company, debt: parseFloat(t.debt_balance) }))
+      : [];
+
+    // Топ менеджеры
+    const mgrMap = {};
+    if (Array.isArray(trips)) trips.forEach(t => {
+      const mgr = t.manager || 'Без менеджера';
+      mgrMap[mgr] = (mgrMap[mgr] || 0) + parseFloat(t.order_amount || 0);
+    });
+    const topManagers = Object.entries(mgrMap)
+      .sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([name, revenue]) => ({ name, revenue }));
+
+    // Уровень алертов
+    let alertLevel = 'ok';
+    if (debitorka > porogDebitorki) alertLevel = 'danger';
+    else if (planPercent < 35) alertLevel = 'warning';
+
+    const monthNames = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+    data = {
+      companyName: cfg.company_name || 'Центр управления',
+      month: monthNames[now.getMonth()] + ' ' + y,
+      vyruchka, planVyruchka, planPercent,
+      zayavki, planZayavki, vRabote, vSoglasovanii: 0,
+      reysy, planReysy,
+      debitorka, porogDebitorki,
+      konversiya, sredniyChek,
+      pribyl, raskhody,
+      vyruchkaToday, reysyToday, zayavkiToday,
+      dolzhniki, topManagers, alertLevel
+    };
+  } catch(e) {
+    console.error('Supabase error:', e);
+    data = DEMO;
+    data._demo = true;
   }
-  if (!data || data.error) { data = DEMO; data._demo = true; }
+  if (!data) { data = DEMO; data._demo = true; }
   renderDashboard(data);
   document.getElementById('refreshIcon').textContent = '↻';
 }
@@ -1072,108 +1197,124 @@ function renderDashboard(d) {
 }
 
 async function sendTelegramReport() {
-  if (!SCRIPT_URL) { showToast('⚙️ Подключите Apps Script'); return; }
-  try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({action:'sendTelegram'}) });
-    const res = await r.json();
-    showToast(res.success ? '✈️ Отчёт отправлен!' : '❌ ' + res.message);
-  } catch(e) { showToast('❌ Ошибка отправки'); }
-}
-
-async function postData(data, msg) {
-  if (!SCRIPT_URL) { showToast('✓ Сохранено (демо)'); return; }
-  try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(data) });
-    const res = await r.json();
-    showToast(res.success ? msg : '❌ Ошибка');
-    if (res.success) loadDashboard();
-  } catch(e) { showToast('❌ Нет соединения'); }
+  showToast('📤 Отчёт: функция через Supabase Edge Functions (в разработке)');
 }
 
 async function submitZayavka() {
   const c = document.getElementById('z-company').value.trim();
   if (!c) { showToast('⚠️ Укажите компанию'); return; }
-  await postData({
-    action:'addZayavka', company:c,
-    contact: document.getElementById('z-contact').value,
+  const ok = await sbInsert('logistika_leads', {
+    client_company: c,
+    contact_person: document.getElementById('z-contact').value,
     phone: document.getElementById('z-phone').value,
-    from: document.getElementById('z-from').value,
-    to: document.getElementById('z-to').value,
-    cargo: document.getElementById('z-cargo').value,
-    summa: document.getElementById('z-summa').value,
-    istochnik: document.getElementById('z-istochnik').value,
+    route_from: document.getElementById('z-from').value,
+    route_to: document.getElementById('z-to').value,
+    cargo_description: document.getElementById('z-cargo').value,
+    lead_amount: parseFloat(document.getElementById('z-summa').value) || null,
+    source: document.getElementById('z-istochnik').value,
     manager: document.getElementById('z-manager').value,
     status: document.getElementById('z-status').value,
-    data: new Date().toISOString()
-  }, 'Заявка добавлена ✓');
-  ['z-company','z-contact','z-phone','z-from','z-to','z-cargo','z-summa','z-manager'].forEach(id => document.getElementById(id).value='');
+    lead_date: new Date().toISOString().split('T')[0]
+  });
+  if (ok) {
+    showToast('Заявка добавлена ✓');
+    ['z-company','z-contact','z-phone','z-from','z-to','z-cargo','z-summa','z-manager'].forEach(id => document.getElementById(id).value='');
+    loadDashboard();
+  } else {
+    showToast('❌ Ошибка сохранения');
+  }
 }
 
 async function submitPeregovory() {
   const c = document.getElementById('p-company').value.trim();
   if (!c) { showToast('⚠️ Укажите компанию'); return; }
-  await postData({
-    action:'addPeregovory', company:c,
+  const ok = await sbInsert('logistika_negotiations', {
+    company: c,
     manager: document.getElementById('p-manager').value,
     result: document.getElementById('p-result').value,
-    nextStep: document.getElementById('p-nextstep').value,
-    nextDate: document.getElementById('p-nextdate').value,
+    next_step: document.getElementById('p-nextstep').value,
+    next_contact_date: document.getElementById('p-nextdate').value || null,
     comment: document.getElementById('p-comment').value,
-    data: new Date().toISOString()
-  }, 'Зафиксировано ✓');
-  ['p-company','p-manager','p-nextstep','p-nextdate','p-comment'].forEach(id => document.getElementById(id).value='');
+    contact_date: new Date().toISOString().split('T')[0]
+  });
+  if (ok) {
+    showToast('Зафиксировано ✓');
+    ['p-company','p-manager','p-nextstep','p-nextdate','p-comment'].forEach(id => document.getElementById(id).value='');
+  } else {
+    showToast('❌ Ошибка сохранения');
+  }
 }
 
 async function submitReys() {
   const c = document.getElementById('r-company').value.trim();
   const s = document.getElementById('r-summa').value;
   if (!c || !s) { showToast('⚠️ Заполните обязательные поля'); return; }
-  await postData({
-    action:'addReys', company:c,
-    marshrut: document.getElementById('r-marshrut').value,
+  const sebes = parseFloat(document.getElementById('r-sebestoimost').value) || 0;
+  const summa = parseFloat(s) || 0;
+  const oplacheno = parseFloat(document.getElementById('r-oplacheno').value) || 0;
+  const ok = await sbInsert('logistika_trips', {
+    client_company: c,
+    route: document.getElementById('r-marshrut').value,
     manager: document.getElementById('r-manager').value,
     driver: document.getElementById('r-driver').value,
-    summa:s,
-    sebestoimost: document.getElementById('r-sebestoimost').value,
-    oplacheno: document.getElementById('r-oplacheno').value,
-    forma: document.getElementById('r-forma').value,
+    order_amount: summa,
+    cost_price: sebes,
+    profit: summa - sebes,
+    paid_amount: oplacheno,
+    debt_balance: summa - oplacheno,
+    payment_method: document.getElementById('r-forma').value,
     status: document.getElementById('r-status').value,
-    data: new Date().toISOString()
-  }, 'Рейс добавлен ✓');
-  ['r-company','r-marshrut','r-manager','r-driver','r-summa','r-sebestoimost','r-oplacheno'].forEach(id => document.getElementById(id).value='');
+    trip_date: new Date().toISOString().split('T')[0]
+  });
+  if (ok) {
+    showToast('Рейс добавлен ✓');
+    ['r-company','r-marshrut','r-manager','r-driver','r-summa','r-sebestoimost','r-oplacheno'].forEach(id => document.getElementById(id).value='');
+    loadDashboard();
+  } else {
+    showToast('❌ Ошибка сохранения');
+  }
 }
 
 async function submitFinansy() {
-  await postData({
-    action:'addFinansy',
-    data: document.getElementById('fin-data').value,
-    vyruchka: document.getElementById('fin-vyruchka').value,
-    toplivo: document.getElementById('fin-toplivo').value,
-    zarplata: document.getElementById('fin-zarplata').value,
-    prochie: document.getElementById('fin-prochie').value,
+  const vyr = parseFloat(document.getElementById('fin-vyruchka').value) || 0;
+  const top = parseFloat(document.getElementById('fin-toplivo').value) || 0;
+  const zar = parseFloat(document.getElementById('fin-zarplata').value) || 0;
+  const pro = parseFloat(document.getElementById('fin-prochie').value) || 0;
+  const total = top + zar + pro;
+  const ok = await sbInsert('logistika_finance', {
+    finance_date: document.getElementById('fin-data').value,
+    revenue: vyr,
+    fuel_expenses: top,
+    salary_expenses: zar,
+    other_expenses: pro,
+    total_expenses: total,
+    profit: vyr - total,
     comment: document.getElementById('fin-comment').value
-  }, 'Финансы сохранены ✓');
+  });
+  showToast(ok ? 'Финансы сохранены ✓' : '❌ Ошибка сохранения');
+  if (ok) loadDashboard();
 }
 
 async function saveSettings() {
-  const settings = {
-
-
-  };
-  const pv = document.getElementById('s-plan-vyr').value;
-  const pr = document.getElementById('s-plan-reysy').value;
-  const pp = document.getElementById('s-porog-reys').value;
-  const pd = document.getElementById('s-porog-debt').value;
-  if (pv) settings['Выручка план'] = pv;
-  if (pr) settings['Рейсы план'] = pr;
-  if (pp) settings['Порог крупного рейса'] = pp;
-  if (pd) settings['Порог дебиторки'] = pd;
-  if (!SCRIPT_URL) { showToast('✓ Настройки (демо)'); return; }
-  try {
-    const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({action:'saveSettings', settings}) });
-    const res = await r.json();
-    showToast(res.success ? '✓ Сохранено' : '❌ Ошибка');
-  } catch(e) { showToast('❌ Нет соединения'); }
+  const fields = [
+    { id: 's-plan-vyr', key: 'revenue_plan' },
+    { id: 's-plan-reysy', key: 'trips_plan' },
+    { id: 's-porog-reys', key: 'large_trip_threshold' },
+    { id: 's-porog-debt', key: 'debt_threshold' }
+  ];
+  let allOk = true;
+  for (const f of fields) {
+    const el = document.getElementById(f.id);
+    if (el && el.value) {
+      const settings = await sbFetch('logistika_settings', `?param_key=eq.${f.key}&select=id`);
+      if (Array.isArray(settings) && settings.length > 0) {
+        const ok = await sbUpdate('logistika_settings', settings[0].id, { param_value: el.value });
+        if (!ok) allOk = false;
+      }
+    }
+  }
+  showToast(allOk ? '✓ Настройки сохранены' : '❌ Ошибка сохранения');
+  if (allOk) loadDashboard();
 }
 
 function showToast(msg) {
