@@ -611,7 +611,7 @@ const PLANS={revenue:3000000,leads:100,consult:60,proc:40};
 function startPage(){document.getElementById('mainHeader').style.display='none';document.getElementById('mainNav').style.display='none';goTo('splash');}
 function openDash(){document.getElementById('mainHeader').style.display='block';document.getElementById('mainNav').style.display='grid';goTo('dash');}
 
-async function sbFetch(t,p=''){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}${p}`,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}});return r.json();}
+async function sbFetch(t,p=''){try{const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}${p}`,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}});if(!r.ok){console.warn('sbFetch error',r.status,t);return [];}const d=await r.json();return Array.isArray(d)?d:[];}catch(e){console.warn('sbFetch exception',e);return [];}}
 async function sbInsert(t,b){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok){const e=await r.text();alert('Ошибка: '+r.status+'\n'+e);}return r.ok;}
 
 const SCREENS=['splash','dash','leads','consult','finance','notify','success'];
@@ -620,7 +620,7 @@ function switchTab(tab){['proc','fin'].forEach(t=>{document.getElementById('tab-
 
 function money(v){v=Number(String(v||'').replace(/\s/g,'').replace(',','.'));if(isNaN(v))v=0;if(v>=1000000)return(v/1000000).toFixed(1).replace(/\.0$/,'')+'M';if(v>=1000)return Math.round(v/1000)+'K';return String(Math.round(v));}
 function greet(){const h=new Date().getHours();return h<12?'Доброе утро':h<17?'Добрый день':'Добрый вечер';}
-function setGauge(id,valId,pctId,value,plan,color){const p=Math.min(100,Math.round(value/plan*100));document.getElementById(id).style.stroke=color;document.getElementById(id).style.strokeDashoffset=207.3-(207.3*p/100);document.getElementById(valId).textContent=money(value)||value;if(pctId)document.getElementById(pctId).textContent=p+'% от плана';}
+function setGauge(id,valId,pctId,value,plan,color){value=parseFloat(value)||0;plan=parseFloat(plan)||1;const p=Math.min(100,Math.round(value/plan*100));document.getElementById(id).style.stroke=color;document.getElementById(id).style.strokeDashoffset=207.3-(207.3*p/100);document.getElementById(valId).textContent=money(value)||'0';if(pctId)document.getElementById(pctId).textContent=p+'% от плана';}
 function validate(fields){for(let[id,label]of fields){if(!document.getElementById(id).value){alert('Заполните: '+label);document.getElementById(id).focus();return false;}}return true;}
 
 async function loadDashboard(){
@@ -655,7 +655,7 @@ async function loadDashboard(){
     const recs=[];if(revP>=80)recs.push(`Выручка ${revP}% от плана — сохранить темп.`);else recs.push(`До плана ${money(planRev-rev)} ₸ — усилить запись.`);if(conv1<60)recs.push(`Конверсия лид→консультация ${conv1}% — проработать скрипт.`);else recs.push(`Конверсия лид→консультация ${conv1}% — норма.`);if(conv2<50)recs.push(`Конверсия консультация→процедура ${conv2}% — усилить врачей.`);else recs.push(`Конверсия консультация→процедура ${conv2}% — хорошо.`);if(refusals>0)recs.push(`${refusals} отказов — разобрать на планёрке.`);
     document.getElementById('aiBody').innerHTML='<ol style="padding-left:18px">'+recs.map(r=>`<li style="margin-bottom:6px">${r}</li>`).join('')+'</ol>';
     document.getElementById('refreshTime').textContent='Обновлено: '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
-  }catch(e){console.error(e);}
+  }catch(e){console.error(e);const al=document.getElementById('mainAlert');al.className='status-card warn';al.textContent='⚠️ Нет связи с базой данных. Проверьте интернет и обновите страницу.';al.style.display='block';document.getElementById('refreshTime').textContent='Ошибка загрузки';document.getElementById('aiBody').textContent='Данные недоступны — нет связи с Supabase.';}
 }
 
 function submitLead(){if(!validate([['lDate','Дата'],['lName','Имя клиента'],['lSource','Источник']]))return;post(document.getElementById('lBtn'),{type:'lead',date:lDate.value,name:lName.value,phone:lPhone.value,source:lSource.value,procedure:lProcedure.value,status:lStatus.value});}
