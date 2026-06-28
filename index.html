@@ -629,7 +629,7 @@ async function loadDashboard(){
   document.getElementById('mainAlert').style.display='none';
   try{
     const settings=await sbFetch('sakura_settings','?select=param_key,param_value');
-    const cfg={};if(Array.isArray(settings))settings.forEach(r=>{cfg[r.param_key]=r.param_value;});
+    const cfg={};if(Array.isArray(settings))settings.forEach(r=>{cfg[r.param_key]=r.param_value;});window._cfg=cfg;
     const planRev=parseFloat(cfg.revenue_plan)||PLANS.revenue,planLeads=parseFloat(cfg.leads_plan)||PLANS.leads,planConsult=parseFloat(cfg.consults_plan)||PLANS.consult,planProc=parseFloat(cfg.procedures_plan)||PLANS.proc;
     if(cfg.telegram_bot_token&&cfg.telegram_bot_token!=='EMPTY')TG_TOKEN=cfg.telegram_bot_token;
     if(cfg.telegram_chat_id&&cfg.telegram_chat_id!=='EMPTY')TG_CHAT_ID=cfg.telegram_chat_id;
@@ -668,7 +668,7 @@ async function post(btn,payload){
   let table,body;
   if(payload.type==='lead'){table='sakura_leads';body={lead_date:payload.date,client_name:payload.name,phone:payload.phone,source:payload.source,procedure:payload.procedure,status:payload.status};}
   else if(payload.type==='consult'){table='sakura_consultations';body={consult_date:payload.date,doctor:payload.doctor,procedure:payload.procedure,result:payload.result,comment:payload.comment||''};if(payload.result==='Отказ')sendTg(`🚨 *Отказ*\nВрач: ${payload.doctor}\nПроцедура: ${payload.procedure}`);}
-  else if(payload.type==='procedure'){const price=parseFloat(payload.revenue)||0,cost=parseFloat(payload.cost)||0;table='sakura_procedures';body={proc_date:payload.date,doctor:payload.doctor,procedure:payload.name,price,cost_price:cost,payment_method:payload.payment,client_type:payload.clientType};if(price>=500000)sendTg(`💰 *Крупный чек!*\n${money(price)} ₸\nВрач: ${payload.doctor}`);}
+  else if(payload.type==='procedure'){const price=parseFloat(payload.revenue)||0,cost=parseFloat(payload.cost)||0;table='sakura_procedures';body={proc_date:payload.date,doctor:payload.doctor,procedure:payload.name,price,cost_price:cost,payment_method:payload.payment,client_type:payload.clientType};const bigCheckThreshold=parseFloat((window._cfg&&window._cfg.threshold_big_check)||500000);if(price>=bigCheckThreshold)sendTg(`💰 *Крупный чек!*\n${money(price)} ₸\nВрач: ${payload.doctor}`);}
   else if(payload.type==='finance'){table='sakura_finance';body={finance_date:payload.date,revenue:parseFloat(payload.revenue)||0,balance:parseFloat(payload.cash)||0,expense_ads:parseFloat(payload.ads)||0,expense_salary:parseFloat(payload.salary)||0,expense_rent:parseFloat(payload.rent)||0,expense_other:parseFloat(payload.other)||0,total_expenses:parseFloat(payload.expenses)||0,profit:(parseFloat(payload.revenue)||0)-(parseFloat(payload.expenses)||0)};}
   if(table&&body){const ok=await sbInsert(table,body);if(ok)goTo('success');}
   btn.disabled=false;btn.textContent=orig;
