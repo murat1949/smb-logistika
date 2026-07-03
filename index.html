@@ -801,7 +801,9 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Менеджер</label><input class="form-input" id="z-manager" placeholder="Айдар"></div>
+        <div class="form-group"><label class="form-label">Менеджер</label>
+          <select class="form-select" id="z-manager"><option value="">— Выберите —</option></select>
+        </div>
         <div class="form-group"><label class="form-label">Статус</label>
           <select class="form-select" id="z-status"><option>Новая</option><option>В работе</option><option>Согласование</option></select>
         </div>
@@ -818,7 +820,9 @@
     <div class="form-title">🤝 Фиксация контакта</div>
     <div class="card">
       <div class="form-group"><label class="form-label">Компания *</label><input class="form-input" id="p-company" placeholder="ТОО КазГрузСервис"></div>
-      <div class="form-group"><label class="form-label">Менеджер</label><input class="form-input" id="p-manager" placeholder="Айдар"></div>
+      <div class="form-group"><label class="form-label">Менеджер</label>
+        <select class="form-select" id="p-manager"><option value="">— Выберите —</option></select>
+      </div>
       <div class="form-group"><label class="form-label">Результат *</label>
         <select class="form-select" id="p-result">
           <option>Первый контакт</option><option>Отправлено КП</option>
@@ -842,8 +846,12 @@
       <div class="form-group"><label class="form-label">Компания клиента *</label><input class="form-input" id="r-company" placeholder="ТОО КазГрузСервис"></div>
       <div class="form-group"><label class="form-label">Маршрут *</label><input class="form-input" id="r-marshrut" placeholder="Алматы — Астана"></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Менеджер</label><input class="form-input" id="r-manager" placeholder="Айдар"></div>
-        <div class="form-group"><label class="form-label">Водитель</label><input class="form-input" id="r-driver" placeholder="Серик"></div>
+        <div class="form-group"><label class="form-label">Менеджер</label>
+          <select class="form-select" id="r-manager"><option value="">— Выберите —</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Водитель</label>
+          <select class="form-select" id="r-driver"><option value="">— Выберите —</option></select>
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Сумма заказа (₸) *</label><input class="form-input" id="r-summa" type="number" placeholder="350000"></div>
@@ -1420,8 +1428,35 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+/* ============================================================
+   ДИНАМИЧЕСКИЕ СПРАВОЧНИКИ — менеджеры и водители из Supabase
+   Подставляются во все select'ы на странице
+   ============================================================ */
+async function fillSelect(selectId, table) {
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  const data = await sbFetch(table, '?select=id,full_name&is_active=eq.true&order=full_name');
+  if (!Array.isArray(data)) return;
+  for (const item of data) {
+    const opt = document.createElement('option');
+    opt.value = item.full_name;
+    opt.textContent = item.full_name;
+    el.appendChild(opt);
+  }
+}
+
+async function loadDropdowns() {
+  await Promise.all([
+    fillSelect('z-manager', 'logistika_managers'),
+    fillSelect('p-manager', 'logistika_managers'),
+    fillSelect('r-manager', 'logistika_managers'),
+    fillSelect('r-driver', 'logistika_drivers')
+  ]);
+}
+
 document.getElementById('fin-data').value = new Date().toISOString().split('T')[0];
 loadDashboard();
+loadDropdowns();
 </script>
 </div>
 </body>
