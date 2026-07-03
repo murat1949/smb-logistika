@@ -922,6 +922,7 @@
   <button class="nav-btn" onclick="showScreen('reysy',this)"><span class="ico">🚛</span><span class="nav-label">Рейсы</span></button>
   <button class="nav-btn" onclick="showScreen('finansy',this)"><span class="ico">💵</span><span class="nav-label">Финансы</span></button>
   <button class="nav-btn" id="nav-alerts" onclick="showScreen('alerts',this)"><span class="ico">🔔</span><span class="nav-label">Алерты</span></button>
+  <button class="nav-btn" id="nav-settings" onclick="window.location.href='settings.html'"><span class="ico">⚙️</span><span class="nav-label">Настройки</span></button>
 </nav>
 
 <div class="toast" id="toast"></div>
@@ -969,6 +970,8 @@ function applyRole() {
   const r = sessionStorage.getItem('smb_role');
   const alertsBtn = document.getElementById('nav-alerts');
   if (alertsBtn) alertsBtn.style.display = (r === 'owner') ? '' : 'none';
+  const settingsBtn = document.getElementById('nav-settings');
+  if (settingsBtn) settingsBtn.style.display = (r === 'owner') ? '' : 'none';
   const sw = document.getElementById('switchUserBtn');
   if (sw) sw.style.display = r ? '' : 'none';
 }
