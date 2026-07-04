@@ -810,6 +810,11 @@
       </div>
       <button class="submit-btn" onclick="submitZayavka()">✓ Сохранить заявку</button>
     </div>
+    
+    <div style="margin-top:20px;padding:16px;background:#f8fafb;border-radius:8px;border:1px solid #e2e8f0;">
+      <div style="font-weight:bold;color:#1e3a5f;margin-bottom:12px;">📋 Все заявки</div>
+      <div id="leads-list" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
   </div>
 </div>
 
@@ -1447,6 +1452,49 @@ async function fillSelect(selectId, table) {
     el.appendChild(opt);
   }
 }
+
+/* ============================================================
+   СПИСОК ЗАЯВОК — загрузка и отображение из Supabase
+   ============================================================ */
+async function loadLeads() {
+  const data = await sbFetch('logistika_leads', '?select=*&order=created_at.desc');
+  renderLeads(Array.isArray(data) ? data : []);
+}
+
+function renderLeads(leads) {
+  const container = document.getElementById('leads-list');
+  if (!container) return;
+  
+  if (leads.length === 0) {
+    container.innerHTML = '<div style="padding:16px;text-align:center;color:#999;">📭 Нет заявок</div>';
+    return;
+  }
+  
+  container.innerHTML = leads.map(lead => `
+    <div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="font-weight:bold;color:#003d82;margin-bottom:8px;">
+        ${lead.client_company || 'Новая заявка'}
+      </div>
+      <div style="font-size:13px;color:#666;line-height:1.6;">
+        <div>📍 ${lead.route_from || '—'} → ${lead.route_to || '—'}</div>
+        <div>📦 ${lead.cargo_description || '—'}</div>
+        <div>💰 ${lead.lead_amount ? lead.lead_amount.toLocaleString() : '—'} ₸</div>
+        <div>👤 Менеджер: ${lead.manager || '—'}</div>
+        <div>📋 Статус: <span style="color:#10b981;font-weight:bold;">${lead.status || 'Новая'}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Загружаем заявки при открытии вкладки
+Promise.all([
+  fillSelect('z-manager', 'logistika_managers'),
+  fillSelect('p-manager', 'logistika_managers'),
+  fillSelect('r-manager', 'logistika_managers'),
+  fillSelect('r-driver', 'logistika_drivers'),
+  loadLeads()
+]).catch(console.error);
+
 
 async function loadDropdowns() {
   await Promise.all([
